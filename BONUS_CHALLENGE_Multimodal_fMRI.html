@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multimodal RAG Lakehouse for Human Brain fMRI Data</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel2: #1e293b;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --border: rgba(148, 163, 184, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 36%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 72px 8vw;
+      border-bottom: 1px solid var(--border);
+    }
+
+    section {
+      padding: 72px 8vw;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      max-width: 1050px;
+      margin: 0 0 24px;
+      font-size: clamp(2.6rem, 6vw, 6rem);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    h3 {
+      margin: 0 0 12px;
+      color: #f8fafc;
+      font-size: 1.25rem;
+    }
+
+    p {
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 1.04rem;
+    }
+
+    .hero-subtitle {
+      max-width: 900px;
+      font-size: clamp(1.1rem, 2vw, 1.45rem);
+      color: #cbd5e1;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 32px;
+    }
+
+    .tag {
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+      color: #cbd5e1;
+      border-radius: 999px;
+      padding: 8px 13px;
+      font-size: 0.88rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+    }
+
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .metric {
+      font-size: 2.2rem;
+      color: #f8fafc;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 6px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .highlight {
+      color: var(--accent);
+    }
+
+    .purple {
+      color: var(--accent2);
+    }
+
+    .quote {
+      font-size: clamp(1.45rem, 3vw, 2.4rem);
+      line-height: 1.16;
+      color: #f8fafc;
+      max-width: 1100px;
+      letter-spacing: -0.035em;
+    }
+
+    .diagram {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      overflow-x: auto;
+      white-space: pre;
+      color: #dbeafe;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .decision {
+      border-left: 4px solid var(--accent);
+    }
+
+    .reject {
+      color: #fecaca;
+    }
+
+    .choose {
+      color: #bbf7d0;
+    }
+
+    .warning {
+      border-left: 4px solid var(--warn);
+    }
+
+    .danger {
+      border-left: 4px solid var(--bad);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 22px;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    th, td {
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: #f8fafc;
+      background: rgba(30, 41, 59, 0.9);
+      font-size: 0.9rem;
+    }
+
+    td {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      color: #bae6fd;
+      background: rgba(2, 6, 23, 0.72);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 860px) {
+      header, section {
+        padding: 56px 5vw;
+      }
+
+      .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 {
+        grid-column: span 12;
+      }
+
+      .diagram {
+        font-size: 0.78rem;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      header, section {
+        min-height: auto;
+        page-break-after: always;
+        border-bottom: none;
+      }
+
+      .card, .diagram, table {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="eyebrow">Bonus Challenge · Design Your Own Lakehouse</div>
+      <h1>Multimodal RAG Lakehouse for Human Brain fMRI Data</h1>
+      <p class="hero-subtitle">
+        A production architecture for reproducible retrieval over brain imaging, cognitive-task metadata,
+        clinical notes, statistical maps, and research provenance.
+      </p>
+      <div class="tag-row">
+        <span class="tag">fMRI</span>
+        <span class="tag">Multimodal RAG</span>
+        <span class="tag">Lakehouse</span>
+        <span class="tag">Embeddings Versioning</span>
+        <span class="tag">Scientific Reproducibility</span>
+        <span class="tag">Human Brain Data</span>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="eyebrow">01 · Problem Statement</div>
+    <h2>The hard problem is not search. It is reproducible scientific retrieval.</h2>
+    <p>
+      Imagine a neuroscience platform containing <strong>2 million fMRI sessions</strong> across hospitals,
+      labs, and public datasets. Each session may include raw BOLD time series, anatomical MRI,
+      task descriptions, behavioral logs, preprocessing outputs, brain-region activation maps,
+      clinical metadata, consent constraints, and published paper links.
+    </p>
+    <p>
+      Researchers want to ask: <em>“Find studies where working-memory load increases frontoparietal activation
+      in adolescents, but exclude scans processed with outdated motion-correction pipelines.”</em>
+      A normal vector search system cannot safely answer this unless it knows exactly which subject cohort,
+      brain atlas, preprocessing pipeline, statistical threshold, embedding model, and document version produced
+      each retrieved result.
+    </p>
+
+    <div class="grid">
+      <div class="card span-4">
+        <div class="metric">2M</div>
+        <div class="muted">fMRI sessions across labs, hospitals, and public repositories</div>
+      </div>
+      <div class="card span-4">
+        <div class="metric">100TB+</div>
+        <div class="muted">raw + derived imaging data when BOLD, anatomy, and maps are retained</div>
+      </div>
+      <div class="card span-4">
+        <div class="metric">5 years</div>
+        <div class="muted">retrieval must remain reproducible for scientific and clinical audit</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">02 · Core Insight</div>
+    <div class="quote">
+      Multimodal RAG for fMRI is a <span class="highlight">data governance problem</span>
+      before it is an LLM problem.
+    </div>
+    <p>
+      The system must retrieve across text, images, time series, brain atlases, cohort metadata, and analysis
+      outputs. But the answer is only trustworthy if every retrieval can be traced back to its exact source:
+      subject/session ID, consent scope, preprocessing version, atlas version, chunk version, embedding version,
+      and index version.
+    </p>
+    <p>
+      A good design therefore separates the lakehouse source of truth from the low-latency retrieval service.
+      The vector index serves search. The lakehouse proves what was searched.
+    </p>
+  </section>
+
+  <section>
+    <div class="eyebrow">03 · Why fMRI RAG is uniquely difficult</div>
+    <h2>Brain data breaks the assumptions of ordinary document RAG.</h2>
+
+    <div class="grid">
+      <div class="card span-6 warning">
+        <h3>1. The same scan can produce different truths</h3>
+        <p>
+          Motion correction, smoothing, normalization, and statistical thresholding can change the apparent
+          activation pattern. A retrieval result must include the preprocessing pipeline that produced it.
+        </p>
+      </div>
+
+      <div class="card span-6 warning">
+        <h3>2. The data is multimodal by nature</h3>
+        <p>
+          A session is not one document. It may contain BOLD time series, anatomical MRI, task design,
+          event timing, behavioral scores, clinical notes, atlas mappings, and derived activation maps.
+        </p>
+      </div>
+
+      <div class="card span-6 warning">
+        <h3>3. Cohort filtering is not optional</h3>
+        <p>
+          Age, sex, diagnosis, handedness, scanner type, task protocol, and site effects may determine whether
+          a result is scientifically valid. Retrieval must combine semantic similarity with structured filters.
+        </p>
+      </div>
+
+      <div class="card span-6 warning">
+        <h3>4. Privacy and consent shape the architecture</h3>
+        <p>
+          Human brain data can be sensitive. The system must enforce consent boundaries, de-identification,
+          access control, and audit logs before any researcher or LLM sees protected metadata.
+        </p>
+      </div>
+
+      <div class="card span-6 warning">
+        <h3>5. Embeddings will change</h3>
+        <p>
+          Text, image, time-series, and graph embeddings will improve. The design must support multiple
+          embedding generations without overwriting historical retrieval behavior.
+        </p>
+      </div>
+
+      <div class="card span-6 warning">
+        <h3>6. Scientific citations require reproducibility</h3>
+        <p>
+          If a paper cites a retrieved cohort or activation pattern, the system must reproduce that exact result
+          years later, even after new preprocessing and embedding models are introduced.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">04 · Proposed Architecture</div>
+    <h2>Lakehouse as source of truth, vector DB as serving layer.</h2>
+
+    <div class="diagram">
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              DATA SOURCES                                     │
+│  DICOM / NIfTI scans · BIDS datasets · task logs · clinical notes · papers     │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ BRONZE: Immutable Raw Landing                                                 │
+│ - raw scan files, BIDS folders, task files, notes, papers                      │
+│ - subject/session hash, consent scope, source, checksum                        │
+│ - no human-readable PII; tokenized identifiers                                 │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ SILVER: Standardized Scientific Representations                               │
+│ - validated BIDS metadata                                                     │
+│ - extracted text from notes/papers                                             │
+│ - preprocessing outputs: motion metrics, normalized images, activation maps    │
+│ - atlas mappings, task ontology, cohort tables                                 │
+│ - pipeline_version, atlas_version, quality_control_version                     │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ GOLD: Retrieval-Ready Multimodal Objects                                      │
+│ - text chunks from papers/notes/protocols                                      │
+│ - region-level activation summaries                                            │
+│ - image patches / statistical map descriptors                                  │
+│ - time-series features                                                         │
+│ - embedding_model_version + chunk_version + index_version                      │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                  ┌──────────────────┴──────────────────┐
+                  ▼                                     ▼
+┌──────────────────────────────────────┐   ┌───────────────────────────────────┐
+│ Vector Search Service                 │   │ Structured Query Engine            │
+│ - multimodal embeddings               │   │ - cohort filters                    │
+│ - HNSW / IVF indexes                   │   │ - consent filters                   │
+│ - low-latency nearest neighbors        │   │ - provenance joins                  │
+└──────────────────┬───────────────────┘   └─────────────────┬─────────────────┘
+                   └──────────────────┬───────────────────────┘
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RAG APPLICATION                                                              │
+│ - query planning: semantic + structured filters                               │
+│ - retrieval with provenance                                                   │
+│ - reranking and citation validation                                            │
+│ - answer only with reproducible evidence                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">05 · Key Architecture Decisions</div>
+    <h2>Every choice must reject tempting alternatives.</h2>
+
+    <div class="grid">
+      <div class="card span-12 decision">
+        <h3>Decision 1 — Table Format</h3>
+        <p><span class="choose">I chose Delta Lake</span> as the primary lakehouse table format for Bronze, Silver, and Gold metadata tables.</p>
+        <p><span class="reject">Rejected plain Parquet</span> because it lacks ACID transactions, time travel, and reliable rollback during reprocessing.</p>
+        <p><span class="reject">Rejected vector-store-only storage</span> because a vector DB can serve retrieval but cannot prove scientific lineage across preprocessing, atlas, and cohort versions.</p>
+      </div>
+
+      <div class="card span-12 decision">
+        <h3>Decision 2 — Storage Layout</h3>
+        <p><span class="choose">I chose Bronze → Silver → Gold</span> because each layer answers a different trust question.</p>
+        <p><span class="reject">Rejected storing only derived features</span> because researchers may need to reprocess raw scans with improved pipelines.</p>
+        <p><span class="reject">Rejected storing only raw scans</span> because every query would become too slow and expensive.</p>
+      </div>
+
+      <div class="card span-12 decision">
+        <h3>Decision 3 — Retrieval Strategy</h3>
+        <p><span class="choose">I chose hybrid retrieval</span>: structured filters first, multimodal vector retrieval second, reranking third.</p>
+        <p><span class="reject">Rejected vector-only retrieval</span> because fMRI questions often require exact cohort, scanner, atlas, task, and diagnosis constraints.</p>
+        <p><span class="reject">Rejected SQL-only retrieval</span> because semantic questions about cognitive constructs and brain networks need similarity search.</p>
+      </div>
+
+      <div class="card span-12 decision">
+        <h3>Decision 4 — Embedding Lifecycle</h3>
+        <p><span class="choose">I chose append-only embedding versions</span> where every vector stores modality, model, preprocessing, chunking, and index versions.</p>
+        <p><span class="reject">Rejected overwriting embeddings</span> because old retrieval results would become impossible to reproduce.</p>
+        <p><span class="reject">Rejected one global index</span> because text, image, graph, and time-series embeddings may need different models and refresh cadences.</p>
+      </div>
+
+      <div class="card span-12 decision">
+        <h3>Decision 5 — Governance and Privacy</h3>
+        <p><span class="choose">I chose tokenization at Bronze landing</span> and audit logging for every sensitive metadata read.</p>
+        <p><span class="reject">Rejected downstream-only masking</span> because raw identifiers could leak before the governance layer is applied.</p>
+        <p><span class="reject">Rejected unrestricted researcher access</span> because consent scope and human-subject privacy must be enforced at query time.</p>
+      </div>
+
+      <div class="card span-12 decision">
+        <h3>Decision 6 — Brain Representation</h3>
+        <p><span class="choose">I chose atlas-aware region summaries plus raw-derived links</span> for retrieval.</p>
+        <p><span class="reject">Rejected only full 4D image embeddings</span> because they are expensive, hard to interpret, and difficult to cite.</p>
+        <p><span class="reject">Rejected only text descriptions</span> because they discard spatial and temporal brain signals that are central to fMRI.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">06 · Gold Retrieval Object</div>
+    <h2>The retrieval row must carry scientific provenance.</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>retrieval_object_id</code></td>
+          <td>Stable identifier for a text chunk, activation summary, image descriptor, or time-series feature.</td>
+        </tr>
+        <tr>
+          <td><code>subject_token</code>, <code>session_token</code></td>
+          <td>De-identified links to the human participant and scan session.</td>
+        </tr>
+        <tr>
+          <td><code>modality</code></td>
+          <td>Text, anatomical MRI, BOLD time series, activation map, behavioral log, table, or paper.</td>
+        </tr>
+        <tr>
+          <td><code>pipeline_version</code></td>
+          <td>Exact preprocessing workflow used to create the derived object.</td>
+        </tr>
+        <tr>
+          <td><code>atlas_version</code></td>
+          <td>Brain parcellation used for region-level interpretation.</td>
+        </tr>
+        <tr>
+          <td><code>chunking_version</code></td>
+          <td>Chunking or feature extraction logic used before embedding.</td>
+        </tr>
+        <tr>
+          <td><code>embedding_model_version</code></td>
+          <td>Model used to create the vector representation.</td>
+        </tr>
+        <tr>
+          <td><code>index_version</code></td>
+          <td>Vector index snapshot used by production search.</td>
+        </tr>
+        <tr>
+          <td><code>consent_scope</code></td>
+          <td>Controls whether the object can be used for research, clinical review, teaching, or external sharing.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="eyebrow">07 · Query Path</div>
+    <h2>Every user question becomes a retrieval plan.</h2>
+
+    <div class="grid">
+      <div class="card span-4">
+        <h3>1. Parse intent</h3>
+        <p>Identify cognitive construct, brain regions, population, diagnosis, modality, and required evidence type.</p>
+      </div>
+
+      <div class="card span-4">
+        <h3>2. Apply hard filters</h3>
+        <p>Filter by consent, cohort, scanner, age group, diagnosis, task design, atlas, and pipeline version.</p>
+      </div>
+
+      <div class="card span-4">
+        <h3>3. Retrieve semantically</h3>
+        <p>Use modality-specific embeddings for papers, notes, activation maps, time-series summaries, and tables.</p>
+      </div>
+
+      <div class="card span-6">
+        <h3>4. Rerank with provenance</h3>
+        <p>Prefer results that match the query and have strong quality-control, clear citations, and stable preprocessing metadata.</p>
+      </div>
+
+      <div class="card span-6">
+        <h3>5. Answer with evidence</h3>
+        <p>The final answer cites document/session versions, brain atlas, statistical threshold, and embedding/index versions.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">08 · Failure Modes</div>
+    <h2>What breaks at 3 AM?</h2>
+
+    <div class="grid">
+      <div class="card span-12 danger">
+        <h3>Failure 1 — New preprocessing pipeline changes activation patterns</h3>
+        <p>
+          <strong>Detection:</strong> Golden queries show changed region-level evidence or unexpected activation distribution shifts.
+        </p>
+        <p>
+          <strong>Rollback:</strong> Use lakehouse time travel to restore the previous Silver/Gold version. Keep the old index active until the new pipeline passes scientific validation.
+        </p>
+      </div>
+
+      <div class="card span-12 danger">
+        <h3>Failure 2 — Embedding upgrade reduces retrieval quality</h3>
+        <p>
+          <strong>Detection:</strong> Evaluation set shows lower recall for known neuroscience queries or more citation mismatches.
+        </p>
+        <p>
+          <strong>Rollback:</strong> Do not promote the new index version. Continue serving the previous embedding/index pair.
+        </p>
+      </div>
+
+      <div class="card span-12 danger">
+        <h3>Failure 3 — Consent filter bug exposes restricted data</h3>
+        <p>
+          <strong>Detection:</strong> Audit logs show query results containing objects outside the user’s approved consent scope.
+        </p>
+        <p>
+          <strong>Rollback:</strong> Disable affected index, rotate access tokens, replay audit logs, and rebuild Gold retrieval objects with stricter governance tests.
+        </p>
+      </div>
+
+      <div class="card span-12 danger">
+        <h3>Failure 4 — Vector index becomes stale</h3>
+        <p>
+          <strong>Detection:</strong> Gold table contains retrieval objects with a newer <code>index_version</code> than the vector DB.
+        </p>
+        <p>
+          <strong>Rollback:</strong> Serve the last healthy index while rebuilding the new index from the Gold table snapshot.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">09 · Cost Back-of-Envelope</div>
+    <h2>The design must be financially believable.</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Assumption</th>
+          <th>Rough Monthly Cost Logic</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Bronze raw storage</td>
+          <td>2M sessions × 50MB average raw/metadata bundle ≈ 100TB</td>
+          <td>100TB × $23/TB-month ≈ $2,300/month</td>
+        </tr>
+        <tr>
+          <td>Silver derived data</td>
+          <td>Preprocessed outputs, QC metrics, atlas maps ≈ 40TB</td>
+          <td>40TB × $23/TB-month ≈ $920/month</td>
+        </tr>
+        <tr>
+          <td>Gold retrieval objects</td>
+          <td>Text chunks, summaries, vectors, metadata ≈ 5–10TB</td>
+          <td>10TB × $23/TB-month ≈ $230/month</td>
+        </tr>
+        <tr>
+          <td>Vector serving</td>
+          <td>Cluster for low-latency HNSW/IVF retrieval</td>
+          <td>$1,000–$5,000/month depending on replicas and memory</td>
+        </tr>
+        <tr>
+          <td>Batch compute</td>
+          <td>Preprocessing, embedding refresh, evaluation jobs</td>
+          <td>$2,000–$10,000/month depending on refresh volume</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      Estimated starting production cost: <strong>$6K–$18K/month</strong>. The biggest cost risk is not storage;
+      it is repeated preprocessing and embedding regeneration. This is why versioned incremental refresh matters.
+    </p>
+  </section>
+
+  <section>
+    <div class="eyebrow">10 · One-Week MVP</div>
+    <h2>Build the smallest slice that proves the hard part.</h2>
+
+    <div class="grid">
+      <div class="card span-6">
+        <h3>Scope</h3>
+        <p>
+          Ingest 1,000 open fMRI sessions or synthetic BIDS-like records, plus associated papers/task descriptions.
+          Store raw metadata in Bronze, standardized tables in Silver, and retrieval objects in Gold.
+        </p>
+      </div>
+
+      <div class="card span-6">
+        <h3>Hard part to prove</h3>
+        <p>
+          A query must return an answer with session ID, document version, preprocessing version, atlas version,
+          embedding version, and index version.
+        </p>
+      </div>
+
+      <div class="card span-12">
+        <h3>MVP Success Criteria</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Requirement</th>
+              <th>Pass condition</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Multimodal retrieval</td>
+              <td>Search across task descriptions, papers, activation summaries, and cohort metadata.</td>
+            </tr>
+            <tr>
+              <td>Structured filtering</td>
+              <td>Filter by age group, task, atlas version, pipeline version, and consent scope.</td>
+            </tr>
+            <tr>
+              <td>Reproducibility</td>
+              <td>Re-run the same query against the same index version and recover the same evidence set.</td>
+            </tr>
+            <tr>
+              <td>Rollback</td>
+              <td>Demonstrate restoring a previous Gold table version after a bad embedding refresh.</td>
+            </tr>
+            <tr>
+              <td>Auditability</td>
+              <td>Every answer includes source evidence and provenance fields.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">11 · Learning Outcomes</div>
+    <h2>What this challenge teaches.</h2>
+
+    <div class="grid">
+      <div class="card span-4">
+        <h3>Architecture judgment</h3>
+        <p>You learn to justify choices under constraints instead of naming fashionable tools.</p>
+      </div>
+      <div class="card span-4">
+        <h3>Scientific data engineering</h3>
+        <p>You learn why human brain data needs lineage, consent, versioning, and reproducibility.</p>
+      </div>
+      <div class="card span-4">
+        <h3>Production RAG thinking</h3>
+        <p>You learn that reliable RAG depends on data contracts, evaluation, rollback, and source-of-truth design.</p>
+      </div>
+      <div class="card span-6">
+        <h3>Lakehouse fundamentals</h3>
+        <p>You apply Bronze/Silver/Gold, ACID tables, time travel, schema evolution, lifecycle design, and FinOps.</p>
+      </div>
+      <div class="card span-6">
+        <h3>Research-grade retrieval</h3>
+        <p>You design a system where retrieval answers can be defended, reproduced, audited, and cited.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">12 · Final Position</div>
+    <div class="quote">
+      For human brain fMRI data, the winning architecture is not the one that retrieves the fastest.
+      It is the one that retrieves <span class="purple">with proof</span>.
+    </div>
+    <p>
+      The lakehouse preserves scientific truth. The vector index accelerates discovery.
+      The RAG layer explains evidence. Together, they create a system that can support neuroscience research
+      without losing reproducibility, privacy, or trust.
+    </p>
+    <p class="footer">
+      Prepared as an HTML presentation for the Lab 18 bonus architecture challenge.
+    </p>
+  </section>
+</body>
+</html>
